@@ -1,8 +1,9 @@
 """
-Daily News Provider
-(c) all rights reserved
-
-Publishes daily news
+CPSC 5520, Seattle University
+This is free and unencumbered software released into the public domain.
+:Author: Arielle Wilson (and Aacer Daken)
+:Version: 1.0
+Description: publishes daily news from RSS feed to subscribers
 """
 import pickle
 import socket
@@ -16,16 +17,31 @@ REQUEST_SIZE = 12
 class TestPublisher(object):
     """
     Publishes news messages
+
+    Attributes:
+         subscriptions: map {subscriber: datetime}
+         socket: UDP socket
+            publishing socket
     """
     def __init__(self):
         self.subscriptions = {}
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def register_subscription(self, subscriber):
+        """
+        Registers subscriber
+        :param subscriber: tuple
+            Address of subscriber
+        """
+
         print('registering subscription for {}'.format(subscriber))
         self.subscriptions[subscriber] = datetime.utcnow()
 
     def publish(self):
+        """
+        Publishes daily news to subscribers
+        """
+
         if len(self.subscriptions) == 0:
             print('no subscriptions')
             return 1000.0  # nothing to do until we get a subscription, so we can wait a long time
@@ -37,7 +53,7 @@ class TestPublisher(object):
 
 class DailyNewsProvider(object):
     """
-    Accept subscriptions for a new instance of a given publisher class.
+    Accepts subscriptions for a new instance of a given publisher class.
     """
 
     def __init__(self, request_address, publisher_class):
@@ -51,6 +67,10 @@ class DailyNewsProvider(object):
         self.publisher = publisher_class()
 
     def run_forever(self):
+        """
+        Listens for new subscribers and gets them registered
+        """
+
         print('waiting for subscribers on {}'.format(self.subscription_requests))
         next_timeout = 0.2
         while True:
@@ -60,6 +80,10 @@ class DailyNewsProvider(object):
             next_timeout = self.publisher.publish()
 
     def register_subscription(self):
+        """
+        Registers subscriber
+        """
+
         data, _address = self.subscription_requests.recvfrom(4096)
         subscriber = pickle.loads(data)
         self.publisher.register_subscription(subscriber)
@@ -77,5 +101,9 @@ class DailyNewsProvider(object):
 
 
 if __name__ == '__main__':
+    """
+    Driver for provider
+    """
+
     dnp = DailyNewsProvider(REQUEST_ADDRESS, TestPublisher)
     dnp.run_forever()
