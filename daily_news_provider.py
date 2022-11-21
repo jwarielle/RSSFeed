@@ -1,8 +1,8 @@
 """
-Forex Provider
+Daily News Provider
 (c) all rights reserved
 
-This module implements a staging version the Forex Provider price feed on localhost.
+Publishes daily news
 """
 import pickle
 import socket
@@ -30,11 +30,9 @@ class TestPublisher(object):
             print('no subscriptions')
             return 1000.0  # nothing to do until we get a subscription, so we can wait a long time
 
-        print('publishing')
-
         for subscriber in self.subscriptions:
             print('publishing {} to {}'.format('Hello', subscriber))
-            self.socket.sendto(b'Hello', subscriber)
+            self.socket.sendto(pickle.dumps('Hello'), subscriber)
 
 
 class DailyNewsProvider(object):
@@ -53,7 +51,7 @@ class DailyNewsProvider(object):
         self.publisher = publisher_class()
 
     def run_forever(self):
-        print('waiting for subscribers on {}  - v2'.format(self.subscription_requests))
+        print('waiting for subscribers on {}'.format(self.subscription_requests))
         next_timeout = 0.2
         while True:
             events = self.selector.select(next_timeout)
@@ -62,7 +60,7 @@ class DailyNewsProvider(object):
             next_timeout = self.publisher.publish()
 
     def register_subscription(self):
-        data, _address = self.subscription_requests.recvfrom(REQUEST_SIZE)
+        data, _address = self.subscription_requests.recvfrom(4096)
         subscriber = pickle.loads(data)
         self.publisher.register_subscription(subscriber)
 
@@ -70,7 +68,6 @@ class DailyNewsProvider(object):
     def start_a_server(address):
         """
         Start a socket bound to given address.
-
         :returns: listening socket
         """
         listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -80,9 +77,5 @@ class DailyNewsProvider(object):
 
 
 if __name__ == '__main__':
-    if REQUEST_ADDRESS[1] == 50403:
-        print('Pick your own port for testing!')
-        print('Modify REQUEST_ADDRESS above to use localhost and some random port')
-        exit(1)
-    fxp = DailyNewsProvider(REQUEST_ADDRESS, TestPublisher)
-    fxp.run_forever()
+    dnp = DailyNewsProvider(REQUEST_ADDRESS, TestPublisher)
+    dnp.run_forever()
