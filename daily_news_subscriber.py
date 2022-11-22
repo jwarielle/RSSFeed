@@ -12,6 +12,7 @@ import sys
 
 SERVER_ADDRESS = ('localhost', 50411)
 BASE_PORT = 50420
+REGISTER = 'REGISTER'
 
 
 class DailyNewsSubscriber(object):
@@ -39,7 +40,7 @@ class DailyNewsSubscriber(object):
         """
 
         self.publisher.bind(self.address)
-        self.publisher.sendto(pickle.dumps(self.address), SERVER_ADDRESS)
+        self.publisher.sendto(pickle.dumps((REGISTER, self.address)), SERVER_ADDRESS)
 
         while True:
             data = self.publisher.recv(4096)

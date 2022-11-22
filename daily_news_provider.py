@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 
 REQUEST_ADDRESS = ('localhost', 50411)
 REQUEST_SIZE = 12
+REGISTER = 'REGISTER'
+NEWS = 'NEWS'
 
 
 class TestPublisher(object):
@@ -50,6 +52,15 @@ class TestPublisher(object):
             print('publishing {} to {}'.format('Hello', subscriber))
             self.socket.sendto(pickle.dumps('Hello'), subscriber)
 
+    def publish_news(self, data):
+        if len(self.subscriptions) == 0:
+            print('no subscriptions')
+            return 1000.0  # nothing to do until we get a subscription, so we can wait a long time
+
+        for subscriber in self.subscriptions:
+            print('publishing news to {}'.format(subscriber))
+            self.socket.sendto(pickle.dumps(data), subscriber)
+
 
 class DailyNewsProvider(object):
     """
@@ -85,8 +96,12 @@ class DailyNewsProvider(object):
         """
 
         data, _address = self.subscription_requests.recvfrom(4096)
-        subscriber = pickle.loads(data)
-        self.publisher.register_subscription(subscriber)
+        subscriber_data = pickle.loads(data)
+
+        if subscriber_data[0] == REGISTER:
+            self.publisher.register_subscription(subscriber_data[1])
+        elif subscriber_data[0] == NEWS:
+            self.publisher.publish_news(subscriber_data[1])
 
     @staticmethod
     def start_a_server(address):
