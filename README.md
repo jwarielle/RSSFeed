@@ -1,3 +1,3 @@
 # RSSFeed
 
-To be filled
+To be filled with spec
