@@ -3,8 +3,9 @@ import pickle
 import socket
 import threading
 
+
 BUF_SZ = 4096
-CONN_TIMEOUT = 5
+CONN_TIMEOUT = 10
 
 class Reporter(object):
     ADD_POST = 'add_post'
@@ -93,8 +94,8 @@ class Reporter(object):
         return datetime.datetime.now().strftime('%H:%M:%S.%f')
 
 if __name__ == '__main__':
-    rep = Reporter('localhost', 50200)
-    rep2 = Reporter('localhost', 50200)
+    rep = Reporter('localhost', 50100)
+    rep2 = Reporter('localhost', 50100)
 
     rep.news_source = 'CNN'
     rep.news = 'Obama Won!!!'
