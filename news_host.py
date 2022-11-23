@@ -17,8 +17,9 @@ class NewsHost(object):
     ADD_POST = 'add_post'
     SOURCE_TAG = 'source'
     Headline_TAG = 'headline'
+    PUBLISH = 'publish'
 
-    def __init__(self, pub_addr = 'localhost', pub_port = 50101):
+    def __init__(self, pub_addr = 'localhost', pub_port = 50500):
         self.listener, self.listener_addr = NewsHost.start_listener()
         self.database = self.SqlDb(DB_NAME, TABLE_NAME)
         self.send_queue = []
@@ -78,10 +79,13 @@ class NewsHost(object):
         while True:
             try:
                 for item in self.send_queue:
+                    send_msg = (NewsHost.PUBLISH, item)
                     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
                         client.connect((self.publisher_addr, self.publisher_port))
-                        client.sendall(pickle.dumps(item))
+                        client.sendall(pickle.dumps(send_msg))
+                        self._print_sent_rpc(client.getpeername(), send_msg)
                         recv_msg = pickle.loads(client.recv(BUF_SZ))
+                        self._print_recv_rpc(client.getpeername(), recv_msg)
                         client.close()
                         if recv_msg is not True:
                             break
