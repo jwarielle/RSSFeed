@@ -46,12 +46,11 @@ class DailyNewsPublisher(object):
         self.publication_socket.listen(BACKLOG)
 
         while True:
-            print('running')
             client, client_addr = self.publication_socket.accept()
             th = threading.Thread(target=self.handle_rpc, args=(client,))
             th.start()
 
-    def handle_rpc(self, client, msg):
+    def handle_rpc(self, client):
         """
         Handles incoming rpc
         :param client: connecting client
