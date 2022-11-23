@@ -5,7 +5,7 @@ import threading
 import pickle
 import sqlite3
 import time
-import hashlib
+import xml.etree.ElementTree
 
 MUTEX = threading.Lock()
 BUF_SZ = 4096
@@ -14,6 +14,8 @@ TABLE_NAME = 'news'
 
 class NewsHost(object):
     ADD_POST = 'add_post'
+    SOURCE_TAG = 'source'
+    Headline_TAG = 'headline'
 
     def __init__(self):
         self.listener, self.listener_addr = NewsHost.start_listener()
@@ -30,24 +32,25 @@ class NewsHost(object):
 
         # Receive the message from client, and marshal it
         rpc = client.recv(BUF_SZ)
-        method, arg1, arg2 = pickle.loads(rpc)
-        self._print_recv_rpc(client.getpeername(),(method, arg1, arg2))
+        method, arg1 = pickle.loads(rpc)
+        self._print_recv_rpc(client.getpeername(),(method, arg1))
 
         # Invoke the method for the given RPC request and send response to client
-        result = self.dispatch_rpc(method, arg1, arg2)
+        result = self.dispatch_rpc(method, arg1)
         client.sendall(pickle.dumps(result))
-        self._print_sent_rpc(client_port, result)
+        self._print_sent_rpc(client.getpeername(), result)
 
-    def dispatch_rpc(self, method, arg1, arg2):
+    def dispatch_rpc(self, method, arg1):
         """
         Invokes the method requested by RPC, and returns response
         :param method: method name
         :param arg1: arg1 for the method
-        :param arg2: arg2 for the method
         :return: the return value from the method, can be None
         """
         if method == NewsHost.ADD_POST:
-            return self.add_post(arg1, arg2)
+            news_src = xml.etree.ElementTree.fromstring(arg1).find(NewsHost.SOURCE_TAG).text
+            news_headline = xml.etree.ElementTree.fromstring(arg1).find(NewsHost.Headline_TAG).text
+            return self.add_post(news_src, news_headline)
 
     def add_post(self, source, news) -> bool:
         """

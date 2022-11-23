@@ -9,6 +9,8 @@ CONN_TIMEOUT = 10
 
 class Reporter(object):
     ADD_POST = 'add_post'
+    SOURCE_TAG = 'source'
+    Headline_TAG = 'headline'
 
     def __init__(self, serv_host_name, serv_port):
         self.server_host_name = serv_host_name
@@ -31,14 +33,17 @@ class Reporter(object):
     def news(self, value):
         self._news = value
 
-    def add_post(self, source, news) -> bool:
+    def add_post(self, source, headline) -> bool:
         """
         Adds a new news topic to the host
         :param source: The source agency of the news (e.g. 'CNN', 'BBC', ...)
-        :param news: The actual news header to be added (e.g. 'Midterm elections are underway in U.S.A.')
+        :param headline: The actual news header to be added (e.g. 'Midterm elections are underway in U.S.A.')
         :return: True, if topic is added successfully
         """
-        result = self.call_rpc(Reporter.ADD_POST, source, news)
+        xml_file = Reporter.XmlHelper()
+        xml_file.add_data(Reporter.SOURCE_TAG, source)
+        xml_file.add_data(Reporter.Headline_TAG, headline)
+        result = self.call_rpc(Reporter.ADD_POST, xml_file.get_xml())
         if result is True:
             print('Added news post successfully')
             return True
@@ -46,17 +51,16 @@ class Reporter(object):
             print('Failed to add news post')
             return False
 
-    def call_rpc(self, method, arg1, arg2):
+    def call_rpc(self, method, arg1):
         """
         Performs an RPC call to the remote server
         :param method: name of method to be executed
         :param arg1: 1st argument of the method to be executed
-        :param arg2: 2nd argument of the method to be executed
         :return: Any
         """
 
         # Create tuple object for the message to be sent to remote server
-        msg_to_send = (method, arg1, arg2)
+        msg_to_send = (method, arg1)
         recv_msg = False
 
         try:
@@ -92,6 +96,16 @@ class Reporter(object):
     def _pr_now():
         """Helper method to print the current timestamp"""
         return datetime.datetime.now().strftime('%H:%M:%S.%f')
+
+    class XmlHelper(object):
+        def __init__(self):
+            self.xml_string = '<news>'
+
+        def add_data(self, tag, data):
+            self.xml_string = self.xml_string + '<{}>{}</{}>'.format(tag, data, tag)
+
+        def get_xml(self):
+            return self.xml_string + '</news>'
 
 if __name__ == '__main__':
     rep = Reporter('localhost', 50100)
