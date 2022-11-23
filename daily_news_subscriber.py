@@ -10,9 +10,9 @@ import pickle
 import socket
 import sys
 
-SERVER_ADDRESS = ('localhost', 50411)
+REGISTER_ADD = ('localhost', 50414)
 BASE_PORT = 50420
-REGISTER = 'REGISTER'
+REGISTER = 'register'
 
 
 class DailyNewsSubscriber(object):
@@ -40,7 +40,7 @@ class DailyNewsSubscriber(object):
         """
 
         self.publisher.bind(self.address)
-        self.publisher.sendto(pickle.dumps((REGISTER, self.address)), SERVER_ADDRESS)
+        self.publisher.sendto(pickle.dumps((self.address)), REGISTER_ADD)
 
         while True:
             data = self.publisher.recv(4096)

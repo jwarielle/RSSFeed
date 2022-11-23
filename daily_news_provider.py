@@ -8,15 +8,18 @@ Description: publishes daily news from RSS feed to subscribers
 import pickle
 import socket
 import selectors
+import threading
 from datetime import datetime, timedelta
 
-REQUEST_ADDRESS = ('localhost', 50411)
+REGISTER_ADD = ('localhost', 50414)
+PUBLISH_ADD = ('localhost', 50500)
 REQUEST_SIZE = 12
-REGISTER = 'REGISTER'
-NEWS = 'NEWS'
+REGISTER = 'register'
+BACKLOG = 100
+BUF_SZ = 4096
 
 
-class TestPublisher(object):
+class DailyNewsPublisher(object):
     """
     Publishes news messages
 
@@ -27,92 +30,55 @@ class TestPublisher(object):
     """
     def __init__(self):
         self.subscriptions = {}
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.registration_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.publication_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def register_subscription(self, subscriber):
+    def start_register_server(self):
+        self.registration_socket.bind(REGISTER_ADD)
+
+        while True:
+            msg, client = self.registration_socket.recvfrom(BUF_SZ)
+            th = threading.Thread(target=self.register_subscription, args=(client, msg))
+            th.start()
+
+    def start_publication_server(self):
+        self.publication_socket.bind(PUBLISH_ADD)
+        self.publication_socket.listen(BACKLOG)
+
+        while True:
+            print('running')
+            client, client_addr = self.publication_socket.accept()
+            th = threading.Thread(target=self.handle_rpc, args=(client,))
+            th.start()
+
+    def handle_rpc(self, client, msg):
         """
-        Registers subscriber
-        :param subscriber: tuple
-            Address of subscriber
+        Handles incoming rpc
+        :param client: connecting client
+        :return: any
+            data returned from rpc
         """
+
+        rpc = client.recv(BUF_SZ)
+        method, arg1, arg2 = pickle.loads(rpc)
+        print('method: {}'.format(method))
+        result = self.dispatch_rpc(method, arg1, arg2)
+        client.sendall(pickle.dumps(result))
+
+    def dispatch_rpc(self, method, arg1, arg2):
+        if method == 'publish':
+            return self.publish(arg1, arg2) # arg1 is source and arg2 is headline
+
+    def register_subscription(self, subscriber, msg):
+        subscriber = pickle.loads(msg)
 
         print('registering subscription for {}'.format(subscriber))
         self.subscriptions[subscriber] = datetime.utcnow()
 
-    def publish(self):
-        """
-        Publishes daily news to subscribers
-        """
-
-        if len(self.subscriptions) == 0:
-            print('no subscriptions')
-            return 1000.0  # nothing to do until we get a subscription, so we can wait a long time
-
-        for subscriber in self.subscriptions:
-            print('publishing {} to {}'.format('Hello', subscriber))
-            self.socket.sendto(pickle.dumps('Hello'), subscriber)
-
-    def publish_news(self, data):
-        if len(self.subscriptions) == 0:
-            print('no subscriptions')
-            return 1000.0  # nothing to do until we get a subscription, so we can wait a long time
-
+    def publish(self, source, headline):
         for subscriber in self.subscriptions:
             print('publishing news to {}'.format(subscriber))
-            self.socket.sendto(pickle.dumps(data), subscriber)
-
-
-class DailyNewsProvider(object):
-    """
-    Accepts subscriptions for a new instance of a given publisher class.
-    """
-
-    def __init__(self, request_address, publisher_class):
-        """
-        :param request_address:
-        :param publisher_class: publisher class must support publish and register_
-        """
-        self.selector = selectors.DefaultSelector()
-        self.subscription_requests = self.start_a_server(request_address)
-        self.selector.register(self.subscription_requests, selectors.EVENT_READ)
-        self.publisher = publisher_class()
-
-    def run_forever(self):
-        """
-        Listens for new subscribers and gets them registered
-        """
-
-        print('waiting for subscribers on {}'.format(self.subscription_requests))
-        next_timeout = 0.2
-        while True:
-            events = self.selector.select(next_timeout)
-            for key, mask in events:
-                self.register_subscription()
-            next_timeout = self.publisher.publish()
-
-    def register_subscription(self):
-        """
-        Registers subscriber
-        """
-
-        data, _address = self.subscription_requests.recvfrom(4096)
-        subscriber_data = pickle.loads(data)
-
-        if subscriber_data[0] == REGISTER:
-            self.publisher.register_subscription(subscriber_data[1])
-        elif subscriber_data[0] == NEWS:
-            self.publisher.publish_news(subscriber_data[1])
-
-    @staticmethod
-    def start_a_server(address):
-        """
-        Start a socket bound to given address.
-        :returns: listening socket
-        """
-        listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        listener.bind(address)
-        listener.settimeout(0.2)
-        return listener
+            self.registration_socket.sendto(pickle.dumps((source, headline)), subscriber)
 
 
 if __name__ == '__main__':
@@ -120,5 +86,8 @@ if __name__ == '__main__':
     Driver for provider
     """
 
-    dnp = DailyNewsProvider(REQUEST_ADDRESS, TestPublisher)
-    dnp.run_forever()
+    dnp = DailyNewsPublisher()
+
+    threading.Thread(target=dnp.start_register_server, args=()).start()
+    threading.Thread(target=dnp.start_publication_server, args=()).start()
+
