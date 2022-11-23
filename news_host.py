@@ -7,7 +7,8 @@ import sqlite3
 import time
 import xml.etree.ElementTree
 
-MUTEX = threading.Lock()
+DB_MUTEX = threading.Lock()
+QUEUE_MUTEX = threading.Lock()
 BUF_SZ = 4096
 DB_NAME = 'lab6.db'
 TABLE_NAME = 'news'
@@ -17,9 +18,12 @@ class NewsHost(object):
     SOURCE_TAG = 'source'
     Headline_TAG = 'headline'
 
-    def __init__(self):
+    def __init__(self, pub_addr = 'localhost', pub_port = 50101):
         self.listener, self.listener_addr = NewsHost.start_listener()
         self.database = self.SqlDb(DB_NAME, TABLE_NAME)
+        self.send_queue = []
+        self.publisher_addr = pub_addr
+        self.publisher_port = int(pub_port)
 
     def handle_rpc(self, client):
         """
@@ -50,7 +54,11 @@ class NewsHost(object):
         if method == NewsHost.ADD_POST:
             news_src = xml.etree.ElementTree.fromstring(arg1).find(NewsHost.SOURCE_TAG).text
             news_headline = xml.etree.ElementTree.fromstring(arg1).find(NewsHost.Headline_TAG).text
-            return self.add_post(news_src, news_headline)
+            result = self.add_post(news_src, news_headline)
+            QUEUE_MUTEX.acquire()
+            self.send_queue.append(arg1)
+            QUEUE_MUTEX.release()
+            return result
 
     def add_post(self, source, news) -> bool:
         """
@@ -60,12 +68,30 @@ class NewsHost(object):
         :return: True, if topic is added successfully
         """
         time.sleep(random.randint(1, 3))
-        MUTEX.acquire()
+        DB_MUTEX.acquire()
         print('DEBUG: add to file {}: {}'.format(source, news))
         self.database.add_entry(source, news)
-        MUTEX.release()
+        DB_MUTEX.release()
         return True
 
+    def send_news(self):
+        while True:
+            try:
+                for item in self.send_queue:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
+                        client.connect((self.publisher_addr, self.publisher_port))
+                        client.sendall(pickle.dumps(item))
+                        recv_msg = pickle.loads(client.recv(BUF_SZ))
+                        client.close()
+                        if recv_msg is not True:
+                            break
+                        else:
+                            QUEUE_MUTEX.acquire()
+                            self.send_queue.remove(item)
+                            QUEUE_MUTEX.release()
+            except OSError as excpt:
+                print('Failed to send queue to publisher. {}'.format(excpt))
+            time.sleep(1)
 
     def listen(self):
         """
@@ -167,8 +193,7 @@ class NewsHost(object):
         def start_db_connection(self):
             """
             Returns a cursor for a given DB
-            :param db_name: Database name
-            :return: Cursor to the database
+            :return: Connection to the database
             """
             # Connect to Database and create cursor object
             con = sqlite3.connect(self.db_name)
@@ -176,5 +201,6 @@ class NewsHost(object):
 
 if __name__ == '__main__':
     host_srv = NewsHost()
-    host_srv.listen()
+    threading.Thread(target=host_srv.listen, args=()).start()
+    threading.Thread(target=host_srv.send_news, args=()).start()
 
