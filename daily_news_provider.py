@@ -108,9 +108,14 @@ class DailyNewsPublisher(object):
         :return:
         """
 
+        if len(self.subscriptions) == 0:
+            return False
+
         for subscriber in self.subscriptions:
             print('publishing news to {}'.format(subscriber))
             self.registration_socket.sendto(pickle.dumps(xml_str), subscriber)
+
+        return True
 
 
 if __name__ == '__main__':
