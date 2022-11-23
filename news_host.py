@@ -136,14 +136,14 @@ class NewsHost(object):
                                             event_time NOT NULL
                                         );""".format(self.table_name)
             db_cursor.execute(command)
-            db_cursor.close()
+
 
         def add_entry(self, news_src, news_header):
             db_connection = self.start_db_connection()
             db_cursor = db_connection.cursor()
             self.create_table(db_cursor)
             command = ' SELECT id FROM {} WHERE id >= (SELECT MAX(id) FROM {})'.format(self.table_name, self.table_name)
-            db_cursor = db_connection.cursor()
+            # db_cursor = db_connection.cursor()
             id_list = db_cursor.execute(command).fetchall()
             print(id_list, len(id_list))
             if len(id_list) == 0:
@@ -157,6 +157,7 @@ class NewsHost(object):
             print(db_cursor.execute('SELECT * FROM news').fetchall())
             db_connection.commit()
             db_cursor.close()
+            db_connection.close()
 
             print(id)
 
