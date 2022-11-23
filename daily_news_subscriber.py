@@ -9,10 +9,12 @@ Description: Subscribes to daily news from RSS feed
 import pickle
 import socket
 import sys
+from xml.etree.ElementTree import Element, SubElement, tostring, fromstring
 
 REGISTER_ADD = ('localhost', 50414)
 BASE_PORT = 50420
 REGISTER = 'register'
+BUF_SZ = 4096
 
 
 class DailyNewsSubscriber(object):
@@ -40,13 +42,22 @@ class DailyNewsSubscriber(object):
         """
 
         self.publisher.bind(self.address)
-        self.publisher.sendto(pickle.dumps((self.address)), REGISTER_ADD)
+        self.publisher.sendto(pickle.dumps(self.address), REGISTER_ADD)
 
         while True:
-            data = self.publisher.recv(4096)
-            unpickled_data = pickle.loads(data)
-            print('DATA: {}'.format(unpickled_data))
+            data = pickle.loads(self.publisher.recv(BUF_SZ))
+            self.parse_xml(data)
 
+    def parse_xml(self, data):
+        """
+        Parases xml string from publisher
+        :param data: xml byte string
+        """
+
+        root = fromstring(data)
+        source = root[0].text
+        headline = root[1].text
+        print('{}: {}'.format(source, headline))
 
 if __name__ == '__main__':
     """

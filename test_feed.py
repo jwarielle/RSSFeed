@@ -8,7 +8,7 @@ Description: Sends news test
 
 import pickle
 import socket
-import sys
+from xml.etree.ElementTree import Element, SubElement, tostring
 
 PUBLISH_ADD = ('localhost', 50500)
 PUBLISH = 'publish'
@@ -23,31 +23,31 @@ class TestFeed(object):
             socket to send news on
     """
 
-    def send_news(self, source, headline):
+    def send_news(self, news):
         """
         Send some news to the publisher
         """
 
+        tree_str = tostring(news)
+
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
                 s.connect(PUBLISH_ADD)
-                s.sendall(pickle.dumps((PUBLISH, source, headline)))
+                s.sendall(pickle.dumps((PUBLISH, tree_str)))
             except Exception as e:
                 return None
 
 
 if __name__ == '__main__':
     """
-    Test feed driver takes news as argument
+    Test feed driver
     """
 
-    if len(sys.argv) < 2:
-        print("Usage: python3 test_feed.py NEWS")
-        exit()
-
-    source = sys.argv[1]
-    headline = sys.argv[2:]
-    headline_string = " ".join(headline)
+    root = Element('root')
+    first_child = SubElement(root, "source")
+    first_child.text = "BBC"
+    sec_child = SubElement(root, "headline")
+    sec_child.text = "Some News"
 
     test_feed = TestFeed()
-    test_feed.send_news(source, headline_string)
+    test_feed.send_news(root)

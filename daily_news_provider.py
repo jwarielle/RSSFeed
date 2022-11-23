@@ -21,12 +21,12 @@ BUF_SZ = 4096
 
 class DailyNewsPublisher(object):
     """
-    Publishes news messages
+    Publishes news messages to subscribers
 
     Attributes:
          subscriptions: map {subscriber: datetime}
-         socket: UDP socket
-            publishing socket
+         registration_socket: UDP socket
+         publication_socket: TCP socket
     """
     def __init__(self):
         self.subscriptions = {}
@@ -34,6 +34,10 @@ class DailyNewsPublisher(object):
         self.publication_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def start_register_server(self):
+        """
+        Starts UDP register listener and registers subscribers that connect
+        """
+
         self.registration_socket.bind(REGISTER_ADD)
 
         while True:
@@ -42,6 +46,12 @@ class DailyNewsPublisher(object):
             th.start()
 
     def start_publication_server(self):
+        """
+        Starts TCP publication server, which listens for RPCs
+        from the host
+        :return:
+        """
+
         self.publication_socket.bind(PUBLISH_ADD)
         self.publication_socket.listen(BACKLOG)
 
@@ -59,30 +69,53 @@ class DailyNewsPublisher(object):
         """
 
         rpc = client.recv(BUF_SZ)
-        method, arg1, arg2 = pickle.loads(rpc)
-        print('method: {}'.format(method))
-        result = self.dispatch_rpc(method, arg1, arg2)
+        method, arg1 = pickle.loads(rpc)
+        result = self.dispatch_rpc(method, arg1)
         client.sendall(pickle.dumps(result))
 
-    def dispatch_rpc(self, method, arg1, arg2):
+    def dispatch_rpc(self, method, arg1):
+        """
+        Dispatches rpc according to method name
+        :param method: str
+            rpc to call
+        :param arg1: any
+            rpc argument
+        :return:
+        """
+
         if method == 'publish':
-            return self.publish(arg1, arg2) # arg1 is source and arg2 is headline
+            return self.publish(arg1) # arg1 is xml string
 
     def register_subscription(self, subscriber, msg):
+        """
+        Registers subscriber
+        :param subscriber: client socket
+            Client wanting publications
+        :param msg: tuple (host, port)
+            subscriber address
+        """
+
         subscriber = pickle.loads(msg)
 
         print('registering subscription for {}'.format(subscriber))
         self.subscriptions[subscriber] = datetime.utcnow()
 
-    def publish(self, source, headline):
+    def publish(self, xml_str):
+        """
+        Publishes news to subscribers
+        :param xml_str: byte str
+            news as xml string
+        :return:
+        """
+
         for subscriber in self.subscriptions:
             print('publishing news to {}'.format(subscriber))
-            self.registration_socket.sendto(pickle.dumps((source, headline)), subscriber)
+            self.registration_socket.sendto(pickle.dumps(xml_str), subscriber)
 
 
 if __name__ == '__main__':
     """
-    Driver for provider
+    Publisher driver
     """
 
     dnp = DailyNewsPublisher()
