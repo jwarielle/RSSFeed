@@ -68,7 +68,7 @@ class NewsHost(object):
         :param news: The actual news header to be added (e.g. 'Midterm elections are underway in U.S.A.')
         :return: True, if topic is added successfully
         """
-        time.sleep(random.randint(1, 3))
+        # time.sleep(random.randint(1, 3))
         DB_MUTEX.acquire()
         print('DEBUG: add to file {}: {}'.format(source, news))
         self.database.add_entry(source, news)
