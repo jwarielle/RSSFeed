@@ -52,12 +52,12 @@ class Reporter(object):
 
         #Make RPC call to server
         result = self.call_rpc(Reporter.ADD_POST, xml_file.get_xml())
-        if result is True:
-            print('Added news post successfully')
-            return True
+        if type(result) is tuple and result[0] is True:
+            print('Added news post successfully. Post ID: {}'.format(result[1]))
+            return result
         else:
             print('Failed to add news post')
-            return False
+            return result
 
     def call_rpc(self, method, arg1):
         """
