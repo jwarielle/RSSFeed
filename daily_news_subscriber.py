@@ -29,13 +29,14 @@ class DailyNewsSubscriber(object):
             Listener address for publications
     """
 
-    def __init__(self, node_id):
+    def __init__(self, my_port, pub_port):
         """
         :param node_id: Id of subscriber node
         """
 
         self.publisher = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.address = ('localhost', BASE_PORT + node_id)
+        self.address = ('localhost', my_port)
+        self.publisher_addr = ('localhost', pub_port)
 
     def run(self):
         """
@@ -54,7 +55,7 @@ class DailyNewsSubscriber(object):
         RPC to publisher register
         """
 
-        self.publisher.sendto(pickle.dumps((REGISTER, self.address)), REGISTER_ADD)
+        self.publisher.sendto(pickle.dumps((REGISTER, self.address)), self.publisher_addr)
 
     def handle_result(self, method, result):
         """
@@ -93,12 +94,15 @@ if __name__ == '__main__':
     Subscriber driver that takes subscriber node id
     """
 
-    if len(sys.argv) < 2:
-        print("Usage: python3 daily_news_subscriber.py NODE_ID")
+    if len(sys.argv) < 3:
+        print('Please enter the port for this node and the port of the publisher')
+        print("Usage: python3 daily_news_subscriber.py MY_PORT PUBLISHER_PORT")
+        print("For example: python3 daily_news_subscriber.py 50421 50414")
         exit()
 
-    node_id = int(sys.argv[1])
+    my_port = int(sys.argv[1])
+    pub_port = int(sys.argv[2])
 
-    subscriber = DailyNewsSubscriber(node_id)
+    subscriber = DailyNewsSubscriber(my_port, pub_port)
     subscriber.run()
 

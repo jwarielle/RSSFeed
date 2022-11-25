@@ -5,6 +5,7 @@ This is free and unencumbered software released into the public domain.
 :Version: 1.0
 Description: publishes daily news from RSS feed to subscribers
 """
+import sys
 import pickle
 import socket
 import selectors
@@ -29,17 +30,19 @@ class DailyNewsPublisher(object):
          registration_socket: UDP socket
          publication_socket: TCP socket
     """
-    def __init__(self):
+    def __init__(self, reg_port, pub_port):
         self.subscriptions = {}
         self.registration_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.publication_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.registration_address = ('localhost', reg_port)
+        self.publication_address = ('localhost', pub_port)
 
     def start_register_server(self):
         """
         Starts UDP register listener and registers subscribers that connect
         """
 
-        self.registration_socket.bind(REGISTER_ADD)
+        self.registration_socket.bind(self.registration_address)
 
         while True:
             msg, client = self.registration_socket.recvfrom(BUF_SZ)
@@ -52,7 +55,7 @@ class DailyNewsPublisher(object):
         from the host
         """
 
-        self.publication_socket.bind(PUBLISH_ADD)
+        self.publication_socket.bind(self.publication_address)
         self.publication_socket.listen(BACKLOG)
 
         while True:
@@ -134,7 +137,16 @@ if __name__ == '__main__':
     Publisher driver
     """
 
-    dnp = DailyNewsPublisher()
+    if len(sys.argv) < 3:
+        print('Please enter the registration and publication ports for this node.')
+        print("Usage: python3 daily_news_provider.py REGISTRATION_PORT PUBLICATION_PORT")
+        print("For example: python3 daily_news_provider.py 50414 50500")
+        exit()
+
+    reg_port = int(sys.argv[1])
+    pub_port = int(sys.argv[2])
+
+    dnp = DailyNewsPublisher(reg_port, pub_port)
 
     threading.Thread(target=dnp.start_register_server, args=()).start()
     threading.Thread(target=dnp.start_publication_server, args=()).start()
