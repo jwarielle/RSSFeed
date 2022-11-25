@@ -139,7 +139,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) < 3:
         print('Please enter the registration and publication ports for this node.')
-        print("Usage: python3 daily_news_provider.py REGISTRATION_PORT PUBLICATION_PORT")
+        print("Usage: python3 daily_news_provider.py <registration port> <publication port>")
         print("For example: python3 daily_news_provider.py 50414 50500")
         exit()
 

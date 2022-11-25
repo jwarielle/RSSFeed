@@ -96,7 +96,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) < 3:
         print('Please enter the port for this node and the port of the publisher')
-        print("Usage: python3 daily_news_subscriber.py MY_PORT PUBLISHER_PORT")
+        print("Usage: python3 daily_news_subscriber.py <port of this node> <port of publisher>")
         print("For example: python3 daily_news_subscriber.py 50421 50414")
         exit()
 
