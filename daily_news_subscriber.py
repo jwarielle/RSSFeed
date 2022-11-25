@@ -14,6 +14,7 @@ from xml.etree.ElementTree import Element, SubElement, tostring, fromstring
 REGISTER_ADD = ('localhost', 50414)
 BASE_PORT = 50420
 REGISTER = 'register'
+PUBLISH = 'publish'
 BUF_SZ = 4096
 
 
@@ -38,15 +39,34 @@ class DailyNewsSubscriber(object):
 
     def run(self):
         """
-        Bind to UDP publisher socket and listen for published news
+        Register with publisher and Bind to UDP publisher socket to listen for news
         """
 
         self.publisher.bind(self.address)
-        self.publisher.sendto(pickle.dumps(self.address), REGISTER_ADD)
+        self.register()
 
         while True:
-            data = pickle.loads(self.publisher.recv(BUF_SZ))
-            self.parse_xml(data)
+            method, result = pickle.loads(self.publisher.recv(BUF_SZ))
+            self.handle_result(method, result)
+
+    def register(self):
+        """
+        RPC to publisher register
+        """
+
+        self.publisher.sendto(pickle.dumps((REGISTER, self.address)), REGISTER_ADD)
+
+    def handle_result(self, method, result):
+        """
+        Parses result according to method it is returned from
+        :param method: str
+        :param result: any
+        """
+
+        if method == PUBLISH:
+            self.parse_xml(result)  # arg1 is xml string
+        elif method == REGISTER:
+            return self.print_registration_confirmation(result)
 
     def parse_xml(self, data):
         """
@@ -58,6 +78,15 @@ class DailyNewsSubscriber(object):
         source = root[0].text
         headline = root[1].text
         print('{}: {}'.format(source, headline))
+
+    def print_registration_confirmation(self, result):
+        """
+        Prints that registration was successful
+        :param result: boolean
+        """
+
+        print(result)
+
 
 if __name__ == '__main__':
     """

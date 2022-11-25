@@ -15,6 +15,7 @@ REGISTER_ADD = ('localhost', 50414)
 PUBLISH_ADD = ('localhost', 50500)
 REQUEST_SIZE = 12
 REGISTER = 'register'
+PUBLISH = 'publish'
 BACKLOG = 100
 BUF_SZ = 4096
 
@@ -42,14 +43,13 @@ class DailyNewsPublisher(object):
 
         while True:
             msg, client = self.registration_socket.recvfrom(BUF_SZ)
-            th = threading.Thread(target=self.register_subscription, args=(client, msg))
+            th = threading.Thread(target=self.handle_rpc_from_subscriber, args=(client, msg))
             th.start()
 
     def start_publication_server(self):
         """
         Starts TCP publication server, which listens for RPCs
         from the host
-        :return:
         """
 
         self.publication_socket.bind(PUBLISH_ADD)
@@ -57,21 +57,31 @@ class DailyNewsPublisher(object):
 
         while True:
             client, client_addr = self.publication_socket.accept()
-            th = threading.Thread(target=self.handle_rpc, args=(client,))
+            th = threading.Thread(target=self.handle_rpc_from_host, args=(client,))
             th.start()
 
-    def handle_rpc(self, client):
+    def handle_rpc_from_host(self, client):
         """
-        Handles incoming rpc
+        Handles incoming rpc for tcp connection from host
         :param client: connecting client
-        :return: any
-            data returned from rpc
         """
 
         rpc = client.recv(BUF_SZ)
         method, arg1 = pickle.loads(rpc)
         result = self.dispatch_rpc(method, arg1)
         client.sendall(pickle.dumps(result))
+
+    def handle_rpc_from_subscriber(self, client, msg):
+        """
+        Handles incoming rpc for UDP connection from subscriber
+        :param client: connecting client
+        :param: msg: any
+            argument for rpc
+        """
+
+        args = pickle.loads(msg)
+        method, result, sub_addr = self.dispatch_rpc(args[0], args[1])
+        self.registration_socket.sendto(pickle.dumps((method, result)), sub_addr)
 
     def dispatch_rpc(self, method, arg1):
         """
@@ -80,32 +90,33 @@ class DailyNewsPublisher(object):
             rpc to call
         :param arg1: any
             rpc argument
-        :return:
+        :return: any
+            result of dispatched method
         """
 
-        if method == 'publish':
-            return self.publish(arg1) # arg1 is xml string
+        if method == PUBLISH:
+            return self.publish(arg1)
+        elif method == REGISTER:
+            return self.register(arg1)
 
-    def register_subscription(self, subscriber, msg):
+    def register(self, sub_address):
         """
         Registers subscriber
-        :param subscriber: client socket
+        :param sub_address: client address
             Client wanting publications
-        :param msg: tuple (host, port)
-            subscriber address
+        :return: (method, result str, address of subscriber)
         """
 
-        subscriber = pickle.loads(msg)
-
-        print('registering subscription for {}'.format(subscriber))
-        self.subscriptions[subscriber] = datetime.utcnow()
+        print('registering subscription for {}'.format(sub_address))
+        self.subscriptions[sub_address] = datetime.utcnow()
+        return REGISTER, 'Registered', sub_address
 
     def publish(self, xml_str):
         """
         Publishes news to subscribers
         :param xml_str: byte str
             news as xml string
-        :return:
+        :return: boolean
         """
 
         if len(self.subscriptions) == 0:
@@ -113,7 +124,7 @@ class DailyNewsPublisher(object):
 
         for subscriber in self.subscriptions:
             print('publishing news to {}'.format(subscriber))
-            self.registration_socket.sendto(pickle.dumps(xml_str), subscriber)
+            self.registration_socket.sendto(pickle.dumps((PUBLISH, xml_str)), subscriber)
 
         return True
 
