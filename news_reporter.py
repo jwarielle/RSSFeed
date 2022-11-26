@@ -25,7 +25,7 @@ class Reporter(object):
     SOURCE_TAG = 'source'
     HEADLINE_TAG = 'headline'
 
-    def __init__(self, serv_host_name, serv_port):
+    def __init__(self, serv_host_name = 'localhost', serv_port = 50100):
         """
         Constructor
         Args:
@@ -215,29 +215,28 @@ if __name__ == '__main__':
     print_welcome_message()
 
     #if insufficient command line arguments provided, print error and exit program gracefully
-    if len(sys.argv) != 3 and len(sys.argv) not in range(5, sys.maxsize):
-        print('ERROR: Incorrect input arguments. Expecting news_host ADDRESS and PORT as input argument.')
+    if len(sys.argv) != 2 and len(sys.argv) not in range(4, sys.maxsize):
+        print('ERROR: Incorrect input arguments. Expecting news_host PORT as input argument.')
         print('Expected format:')
-        print('python3 news_reporter.py <Node address> <Node Address> <Node Port> [optional: <news source e.g. CNN> '
+        print('python3 news_reporter.py <Node Port> [optional: <news source e.g. CNN> '
               '<news header>]')
-        print('E.g.: python3 news_reporter.py localhost 50100')
+        print('E.g.: python3 news_reporter.py 50100')
         print_goodbye_message()
         exit(1)
 
     #Get host address and port number from command line arguments
     try:
-        host_name = str(sys.argv[1])
-        host_port = int(sys.argv[2])
+        host_port = int(sys.argv[1])
     except OSError as excpt:
         print('Invalid port number provided')
         print_goodbye_message()
         exit(1)
 
     #Create news reporter object
-    news_reporter = Reporter(host_name, host_port)
+    news_reporter = Reporter(serv_port=host_port)
 
     #if only host address and port provided, run the UI to prompt the user for the news
-    if len(sys.argv) < 5:
+    if len(sys.argv) < 4:
         news_reporter.run_ui()
         print_goodbye_message()
         exit(0)
@@ -245,8 +244,8 @@ if __name__ == '__main__':
     #if news provided in command line, add the post
     else:
         #Get the news source and headline from the command line arguments
-        news_source = sys.argv[3]
-        news_headline_list = sys.argv[4:]
+        news_source = sys.argv[2]
+        news_headline_list = sys.argv[3:]
         news_headline = ''
         for i in range(0, len(news_headline_list)):
             news_headline = news_headline + ' ' + news_headline_list[i]
