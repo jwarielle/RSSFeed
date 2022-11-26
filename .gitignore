@@ -186,3 +186,5 @@ fabric.properties
 
 # databases
 lab6.db
+
+.DS_Store
