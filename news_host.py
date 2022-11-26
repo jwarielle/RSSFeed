@@ -40,14 +40,14 @@ class NewsHost(object):
     ROOT_TAG = 'news'           #XML tag for the root of the XML file/string
 
 
-    def __init__(self, pub_addr = 'localhost', pub_port = 50500):
+    def __init__(self, pub_addr = 'localhost', pub_port = 50500, listener_port = 0):
         """
         Constructor for the news_host
         Args:
             pub_addr: Hostname of publisher to be contacted for sending data
             pub_port: Port number for the publisher to be contacted for sending data
         """
-        self.listener, self.listener_addr = NewsHost.start_listener()
+        self.listener, self.listener_addr = NewsHost.start_listener(port = int(listener_port))
         self.database = self.SqlDb(DB_NAME, TABLE_NAME)
         self.send_queue = {}
         self.publisher_addr = pub_addr
@@ -411,7 +411,7 @@ if __name__ == '__main__':
 
     #Get host address and port number from command line arguments
     try:
-        pub_name = str(sys.argv[1])
+        listening_port = str(sys.argv[1])
         pub_port = int(sys.argv[2])
     except OSError as excpt:
         print('Invalid port number provided')
@@ -419,7 +419,7 @@ if __name__ == '__main__':
         exit(1)
 
     #Create news reporter object
-    host_srv = NewsHost(pub_name, pub_port)
+    host_srv = NewsHost(listener_port=listening_port, pub_port=pub_port)
 
     #Create a thread for the listener and a thread for the news sender
     threading.Thread(target=host_srv.listen, args=()).start()
