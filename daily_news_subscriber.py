@@ -1,7 +1,7 @@
 """
 CPSC 5520, Seattle University
 This is free and unencumbered software released into the public domain.
-:Author: Arielle Wilson (and Aacer Daken)
+:Author: Arielle Wilson and Aacer Daken
 :Version: 1.0
 Description: Subscribes to daily news from RSS feed
 """
