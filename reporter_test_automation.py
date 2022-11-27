@@ -2,13 +2,14 @@
 CPSC 5520, Seattle University
 This is free and unencumbered software released into the public domain.
 :Author: Aacer Daken and Arielle Wilson
-:Filename: reporter_test.py
+:Filename: reporter_test_automation.py
 :Version: 1.0
 Description: Test driver for news_reporter
 """
 import random
 import threading
 import time
+import sys
 
 import news_reporter
 
@@ -49,6 +50,22 @@ SOURCES = [
     'AssociatedPress'
 ]
 
+def print_welcome_message():
+    """Prints a welcome message on console"""
+    print()
+    print('**********************************************************')
+    print('* Welcome to CPSC5520 Lab6 RSS FEED Reporter Test Driver *')
+    print('**********************************************************')
+    print()
+
+
+def print_goodbye_message():
+    """Prints a goodbye message on console"""
+    print()
+    print('**********************************************************')
+    print('* Thank you for using Lab6 RSS FEED Reporter Test Driver *')
+    print('**********************************************************')
+    print()
 
 def run():
     # Create a Reporter object
@@ -62,6 +79,26 @@ def run():
 
 
 if __name__ == '__main__':
+
+    #print welcome banner
+    print_welcome_message()
+
+    #if insufficient command line arguments provided, print error and exit program gracefully
+    if len(sys.argv) != 2:
+        print('ERROR: Incorrect input arguments. Expecting news_host PORT as input argument.')
+        print('Expected format:')
+        print('python3 news_reporter.py <Node Port>')
+        print('E.g.: python3 news_reporter.py 50100')
+        print_goodbye_message()
+        exit(1)
+
+        # Get host address and port number from command line arguments
+        try:
+            HOST_PORT = int(sys.argv[1])
+        except OSError as excpt:
+            print('Invalid port number provided')
+            print_goodbye_message()
+            exit(1)
 
     for i in range(0, NUM_CLIENTS):
         threading.Thread(target=run, args=()).start()
