@@ -21,3 +21,69 @@ Below are 2 sequence diagrams, the first highlighting communication from the per
 We created RSSFeed for our distributed systems class at Seattle University. It is not intended to be used commercially.
 This project is an academic exercise.
 
+# Run Instructions
+
+## Clone the repo:
+    
+`git clone https://github.com/jwarielle/RSSFeed.git`
+
+## Instructions for Automated Testing 
+
+1) cd into the folder containing python and bash scripts: 
+
+    `cd CSPC5520/lab6/RSS_FEED/`
+
+
+2) Allow running of bash script: 
+
+    `chmod +x automation_script.sh` 
+
+
+3) Run Bash script: 
+
+    `./automation_script.sh`
+
+
+## Instructions for Manual Operation
+
+1) Start the publisher node using this format: 
+
+    `python3 daily_news_provider.py <Registration Port> <Publication Port>`
+
+    For example, 
+
+    `python3 daily_news_provider.py 50414 50500`
+
+
+2) Start a subscriber node using this format (you can start multiple, just make sure you use different port numbers) 
+
+    `python3 daily_news_subscriber.py <Port of this Node> <Registration Port>`
+
+    For example, 
+
+    `python3 daily_news_subscriber.py 50421 50414` 
+ 
+
+3) Start the news host node using this format: 
+
+    `python3 news_host.py <This Nodes Port> <Publisher Port>` 
+
+    For example, 
+
+    `python3 news_host.py 50100 50500` 
+
+
+4) Start the reporter node using this format: 
+
+    `python3 news_reporter.py <News Host Port> [<news source e.g. CNN> <news header>]` 
+
+    For example, 
+
+    `python3 news_reporter.py 50100` 
+
+    Or 
+
+    `python3 news_reporter.py 50100 BBC hello world!` 
+
+
+
